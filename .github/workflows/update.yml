@@ -2,12 +2,14 @@ name: Auto Update
 
 on:
   schedule:
-    - cron: '0 8 * * *'  # Daily at 8:00 UTC
+    - cron: '0 12 * * *'  # Daily at 12:00 UTC
   workflow_dispatch:      # Manual trigger
 
 jobs:
   update:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
       - uses: actions/checkout@v4
 
@@ -73,3 +75,12 @@ jobs:
           git add package.nix
           git commit -m "Update cursor to ${{ steps.check.outputs.latest }}"
           git push
+
+      - name: Create Release
+        if: steps.check.outputs.needs_update == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "v${{ steps.check.outputs.latest }}" \
+            --title "cursor ${{ steps.check.outputs.latest }}" \
+            --notes "Updated cursor from ${{ steps.check.outputs.current }} to ${{ steps.check.outputs.latest }}"
