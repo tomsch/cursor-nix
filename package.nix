@@ -103,16 +103,26 @@ stdenvNoCC.mkDerivation (finalAttrs: {
     cp -r usr/share/bash-completion $out/share/ || true
     cp -r usr/share/zsh $out/share/ || true
 
-    # Create wrapper script (needs shell for env var expansion)
-    # Using a shell script instead of makeBinaryWrapper because the Wayland
-    # flags use shell parameter expansion (${VAR:+...}) which must be evaluated
-    # at runtime, not build time.
-    cat > $out/bin/cursor << EOF
+    # Create wrapper script
+    cat > $out/bin/cursor << 'WRAPPER'
 #!/usr/bin/env bash
-export LD_LIBRARY_PATH="${lib.makeLibraryPath finalAttrs.buildInputs}\''${LD_LIBRARY_PATH:+:\$LD_LIBRARY_PATH}"
-export XDG_DATA_DIRS="${gsettings-desktop-schemas}/share/gsettings-schemas/${gsettings-desktop-schemas.name}:${gtk3}/share/gsettings-schemas/${gtk3.name}\''${XDG_DATA_DIRS:+:\$XDG_DATA_DIRS}"
-exec $out/lib/cursor/cursor \''${NIXOS_OZONE_WL:+\''${WAYLAND_DISPLAY:+--ozone-platform-hint=auto --enable-features=WaylandWindowDecorations --enable-wayland-ime=true}} "\$@"
-EOF
+export LD_LIBRARY_PATH="LIBPATH${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
+export XDG_DATA_DIRS="DATAPATH${XDG_DATA_DIRS:+:$XDG_DATA_DIRS}"
+
+# Wayland support - only add flags if running on Wayland
+WAYLAND_FLAGS=""
+if [[ -n "$NIXOS_OZONE_WL" && -n "$WAYLAND_DISPLAY" ]]; then
+  WAYLAND_FLAGS="--ozone-platform-hint=auto --enable-features=WaylandWindowDecorations --enable-wayland-ime=true"
+fi
+
+exec CURSORPATH $WAYLAND_FLAGS "$@"
+WRAPPER
+
+    # Substitute paths in wrapper
+    substituteInPlace $out/bin/cursor \
+      --replace-fail "LIBPATH" "${lib.makeLibraryPath finalAttrs.buildInputs}" \
+      --replace-fail "DATAPATH" "${gsettings-desktop-schemas}/share/gsettings-schemas/${gsettings-desktop-schemas.name}:${gtk3}/share/gsettings-schemas/${gtk3.name}" \
+      --replace-fail "CURSORPATH" "$out/lib/cursor/cursor"
     chmod +x $out/bin/cursor
 
     # Fix desktop file - remove %F to prevent spurious file arguments
