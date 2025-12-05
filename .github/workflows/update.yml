@@ -48,9 +48,17 @@ jobs:
           COMMIT_SHA="${{ steps.check.outputs.commit_sha }}"
           DEB_URL="${{ steps.check.outputs.deb_url }}"
 
-          # Get new hash
-          HASH=$(nix-prefetch-url "$DEB_URL" 2>&1 | tail -1)
+          # Get new hash (nix-prefetch-url outputs hash on stdout, progress on stderr)
+          HASH=$(nix-prefetch-url "$DEB_URL" 2>/dev/null)
           SRI_HASH=$(nix hash convert --to sri --hash-algo sha256 "$HASH")
+
+          # Validate hash before proceeding
+          if [[ ! "$SRI_HASH" =~ ^sha256- ]]; then
+            echo "ERROR: Invalid SRI hash: $SRI_HASH"
+            exit 1
+          fi
+
+          echo "New hash: $SRI_HASH"
 
           # Update package.nix - version (use non-greedy match by stopping at quote)
           sed -i "s/version = \"[^\"]*\"/version = \"$VERSION\"/" package.nix
@@ -61,6 +69,9 @@ jobs:
           # Update package.nix - commit SHA in URL
           OLD_SHA=$(grep -oP 'production/\K[a-f0-9]{40}' package.nix | head -1)
           sed -i "s|$OLD_SHA|$COMMIT_SHA|" package.nix
+
+          # Show diff for debugging
+          git diff package.nix
 
       - name: Test build
         if: steps.check.outputs.needs_update == 'true'
