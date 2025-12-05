@@ -3,11 +3,9 @@
   stdenvNoCC,
   fetchurl,
   dpkg,
-  makeWrapper,
-  electron,
   binutils,
   autoPatchelfHook,
-  wrapGAppsHook3,
+  gsettings-desktop-schemas,
   alsa-lib,
   at-spi2-atk,
   at-spi2-core,
@@ -35,7 +33,6 @@ stdenvNoCC.mkDerivation (finalAttrs: {
   pname = "cursor";
   version = "2.1.48";
 
-  # Version info fetched from: https://www.cursor.com/api/download?platform=linux-x64&releaseTrack=stable
   src = fetchurl {
     url = "https://downloads.cursor.com/production/ce371ffbf5e240ca47f4b5f3f20efed084991120/linux/x64/deb/amd64/deb/cursor_${finalAttrs.version}_amd64.deb";
     hash = "sha256-JwDN8d+7JsDBXhWoNJF0oQkEdQ1Rnh/bE4S1oNdRRCU=";
@@ -43,11 +40,11 @@ stdenvNoCC.mkDerivation (finalAttrs: {
 
   nativeBuildInputs = [
     dpkg
-    makeWrapper
     autoPatchelfHook
-    wrapGAppsHook3
     binutils
   ];
+
+  dontWrapGApps = true;
 
   buildInputs = [
     alsa-lib
@@ -106,14 +103,22 @@ stdenvNoCC.mkDerivation (finalAttrs: {
     cp -r usr/share/bash-completion $out/share/ || true
     cp -r usr/share/zsh $out/share/ || true
 
-    # Create wrapper
-    makeWrapper $out/lib/cursor/cursor $out/bin/cursor \
-      --prefix LD_LIBRARY_PATH : "${lib.makeLibraryPath finalAttrs.buildInputs}" \
-      --add-flags "\''${NIXOS_OZONE_WL:+\''${WAYLAND_DISPLAY:+--ozone-platform-hint=auto --enable-features=WaylandWindowDecorations --enable-wayland-ime=true}}"
+    # Create wrapper script (needs shell for env var expansion)
+    # Using a shell script instead of makeBinaryWrapper because the Wayland
+    # flags use shell parameter expansion (${VAR:+...}) which must be evaluated
+    # at runtime, not build time.
+    cat > $out/bin/cursor << EOF
+#!/usr/bin/env bash
+export LD_LIBRARY_PATH="${lib.makeLibraryPath finalAttrs.buildInputs}\''${LD_LIBRARY_PATH:+:\$LD_LIBRARY_PATH}"
+export XDG_DATA_DIRS="${gsettings-desktop-schemas}/share/gsettings-schemas/${gsettings-desktop-schemas.name}:${gtk3}/share/gsettings-schemas/${gtk3.name}\''${XDG_DATA_DIRS:+:\$XDG_DATA_DIRS}"
+exec $out/lib/cursor/cursor \''${NIXOS_OZONE_WL:+\''${WAYLAND_DISPLAY:+--ozone-platform-hint=auto --enable-features=WaylandWindowDecorations --enable-wayland-ime=true}} "\$@"
+EOF
+    chmod +x $out/bin/cursor
 
-    # Fix desktop file
+    # Fix desktop file - remove %F to prevent spurious file arguments
     substituteInPlace $out/share/applications/cursor.desktop \
-      --replace-fail "Exec=/usr/share/cursor/cursor" "Exec=$out/bin/cursor" \
+      --replace-fail "Exec=/usr/share/cursor/cursor %F" "Exec=$out/bin/cursor" \
+      --replace-fail "Exec=/usr/share/cursor/cursor --new-window %F" "Exec=$out/bin/cursor --new-window" \
       --replace-fail "Icon=co.anysphere.cursor" "Icon=$out/share/pixmaps/co.anysphere.cursor.png"
 
     # Fix URL handler desktop file
