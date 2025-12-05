@@ -106,8 +106,8 @@ stdenvNoCC.mkDerivation (finalAttrs: {
     # Create wrapper script
     cat > $out/bin/cursor << 'WRAPPER'
 #!/usr/bin/env bash
-export LD_LIBRARY_PATH="LIBPATH${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
-export XDG_DATA_DIRS="DATAPATH${XDG_DATA_DIRS:+:$XDG_DATA_DIRS}"
+export LD_LIBRARY_PATH="LIBPATH''${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
+export XDG_DATA_DIRS="DATAPATH''${XDG_DATA_DIRS:+:$XDG_DATA_DIRS}"
 
 # Wayland support - only add flags if running on Wayland
 WAYLAND_FLAGS=""
