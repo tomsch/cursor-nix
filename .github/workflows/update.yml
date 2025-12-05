@@ -52,11 +52,11 @@ jobs:
           HASH=$(nix-prefetch-url "$DEB_URL" 2>&1 | tail -1)
           SRI_HASH=$(nix hash convert --to sri --hash-algo sha256 "$HASH")
 
-          # Update package.nix - version
-          sed -i "s/version = \".*\"/version = \"$VERSION\"/" package.nix
+          # Update package.nix - version (use non-greedy match by stopping at quote)
+          sed -i "s/version = \"[^\"]*\"/version = \"$VERSION\"/" package.nix
 
-          # Update package.nix - hash
-          sed -i "s|hash = \"sha256-.*\"|hash = \"$SRI_HASH\"|" package.nix
+          # Update package.nix - hash (use non-greedy match by stopping at quote)
+          sed -i "s|hash = \"sha256-[^\"]*\"|hash = \"$SRI_HASH\"|" package.nix
 
           # Update package.nix - commit SHA in URL
           OLD_SHA=$(grep -oP 'production/\K[a-f0-9]{40}' package.nix | head -1)
