@@ -27,6 +27,7 @@
   xorg,
   libsecret,
   libnotify,
+  musl,
 }:
 
 stdenvNoCC.mkDerivation (finalAttrs: {
@@ -76,6 +77,7 @@ stdenvNoCC.mkDerivation (finalAttrs: {
     xorg.libxcb
     xorg.libxshmfence
     xorg.libxkbfile
+    musl # libc.musl-x86_64.so.1 for bundled *-linux-x64-musl Node addon
   ];
 
   dontConfigure = true;
