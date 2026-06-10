@@ -32,11 +32,11 @@
 
 stdenvNoCC.mkDerivation (finalAttrs: {
   pname = "cursor";
-  version = "3.7.19";
+  version = "3.7.21";
 
   src = fetchurl {
-    url = "https://downloads.cursor.com/production/80c653c2c3528e65016a0d304b54486084b470bb/linux/x64/deb/amd64/deb/cursor_${finalAttrs.version}_amd64.deb";
-    hash = "sha256-UQlhImP1/UBf/hLUS+hpr5nQ/Q/iVCnOWT8Kft/u+ak=";
+    url = "https://downloads.cursor.com/production/517f696d8ab6c53eb04fbfdaae705cd146bf346e/linux/x64/deb/amd64/deb/cursor_${finalAttrs.version}_amd64.deb";
+    hash = "sha256-zcNof6rIeXb3FYaAJLTq71XnpQLgRrm52IB75wZheSM=";
   };
 
   nativeBuildInputs = [
