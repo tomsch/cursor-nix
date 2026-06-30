@@ -24,7 +24,15 @@
   nspr,
   nss,
   pango,
-  xorg,
+  libx11,
+  libxcomposite,
+  libxdamage,
+  libxext,
+  libxfixes,
+  libxrandr,
+  libxcb,
+  libxshmfence,
+  libxkbfile,
   libsecret,
   libnotify,
   musl,
@@ -68,15 +76,15 @@ stdenvNoCC.mkDerivation (finalAttrs: {
     pango
     libsecret
     libnotify
-    xorg.libX11
-    xorg.libXcomposite
-    xorg.libXdamage
-    xorg.libXext
-    xorg.libXfixes
-    xorg.libXrandr
-    xorg.libxcb
-    xorg.libxshmfence
-    xorg.libxkbfile
+    libx11
+    libxcomposite
+    libxdamage
+    libxext
+    libxfixes
+    libxrandr
+    libxcb
+    libxshmfence
+    libxkbfile
     musl # libc.musl-x86_64.so.1 for bundled *-linux-x64-musl Node addon
   ];
 
