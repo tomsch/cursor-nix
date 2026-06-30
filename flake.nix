@@ -14,10 +14,12 @@
       packages.${system} = {
         default = pkgs.callPackage ./package.nix {};
         cursor = self.packages.${system}.default;
+        cursor-cli = pkgs.callPackage ./package-cli.nix {};
       };
 
       overlays.default = final: prev: {
         cursor = final.callPackage ./package.nix {};
+        cursor-cli = final.callPackage ./package-cli.nix {};
       };
     };
 }

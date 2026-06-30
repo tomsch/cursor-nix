@@ -1,6 +1,6 @@
 # Cursor for NixOS
 
-Unofficial Nix package for [Cursor](https://cursor.com) - the AI-first code editor.
+Unofficial Nix packages for [Cursor](https://cursor.com) - the AI-first code editor and Cursor Agent CLI.
 
 ## Installation
 
@@ -17,6 +17,7 @@ Unofficial Nix package for [Cursor](https://cursor.com) - the AI-first code edit
         nixpkgs.config.allowUnfree = true;
         environment.systemPackages = [
           cursor.packages.x86_64-linux.default
+          cursor.packages.x86_64-linux.cursor-cli
         ];
       }];
     };
@@ -27,13 +28,30 @@ Unofficial Nix package for [Cursor](https://cursor.com) - the AI-first code edit
 ### Direct Run (no install)
 
 ```bash
+# GUI editor
 nix run github:tomsch/cursor-nix --impure
+
+# CLI agent
+nix run github:tomsch/cursor-nix#cursor-cli --impure
 ```
 
 ### Imperative Install
 
 ```bash
+# GUI editor
 nix profile install github:tomsch/cursor-nix --impure
+
+# CLI agent
+nix profile install github:tomsch/cursor-nix#cursor-cli --impure
+```
+
+## Cursor CLI
+
+The `cursor-cli` package installs Cursor's terminal agent as both `cursor-agent` and `agent`:
+
+```bash
+cursor-agent --version
+agent --version
 ```
 
 ## Features
@@ -55,9 +73,9 @@ export NIXOS_OZONE_WL=1
 
 This is typically set by NixOS desktop modules automatically.
 
-## Update Package
+## Update Packages
 
-Maintainers can update to the latest version:
+Maintainers can update both GUI and CLI packages:
 
 ```bash
 ./update.sh
