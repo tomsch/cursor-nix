@@ -35,14 +35,15 @@ jobs:
           VERSION="${BASH_REMATCH[1]}"
           CURRENT=$(grep 'version = ' package.nix | head -1 | sed 's/.*"\(.*\)".*/\1/')
 
-          echo "current=$CURRENT" >> $GITHUB_OUTPUT
-          echo "latest=$VERSION" >> $GITHUB_OUTPUT
-          echo "deb_url=$DEB_URL" >> $GITHUB_OUTPUT
+          # shellcheck disable=SC2129
+          echo "current=$CURRENT" >> "$GITHUB_OUTPUT"
+          echo "latest=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "deb_url=$DEB_URL" >> "$GITHUB_OUTPUT"
 
           if [ "$VERSION" != "$CURRENT" ]; then
-            echo "needs_update=true" >> $GITHUB_OUTPUT
+            echo "needs_update=true" >> "$GITHUB_OUTPUT"
           else
-            echo "needs_update=false" >> $GITHUB_OUTPUT
+            echo "needs_update=false" >> "$GITHUB_OUTPUT"
           fi
 
       - name: Check for CLI updates
@@ -60,14 +61,15 @@ jobs:
           DOWNLOAD_URL="https://downloads.cursor.com/lab/${VERSION}/linux/x64/agent-cli-package.tar.gz"
           CURRENT=$(grep 'version = ' package-cli.nix | head -1 | sed 's/.*"\(.*\)".*/\1/')
 
-          echo "current=$CURRENT" >> $GITHUB_OUTPUT
-          echo "latest=$VERSION" >> $GITHUB_OUTPUT
-          echo "download_url=$DOWNLOAD_URL" >> $GITHUB_OUTPUT
+          # shellcheck disable=SC2129
+          echo "current=$CURRENT" >> "$GITHUB_OUTPUT"
+          echo "latest=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "download_url=$DOWNLOAD_URL" >> "$GITHUB_OUTPUT"
 
           if [ "$VERSION" != "$CURRENT" ]; then
-            echo "needs_update=true" >> $GITHUB_OUTPUT
+            echo "needs_update=true" >> "$GITHUB_OUTPUT"
           else
-            echo "needs_update=false" >> $GITHUB_OUTPUT
+            echo "needs_update=false" >> "$GITHUB_OUTPUT"
           fi
 
       - name: Update GUI package
@@ -149,9 +151,7 @@ jobs:
         run: |
           NOTES="Updated cursor from ${{ steps.gui.outputs.current }} to ${{ steps.gui.outputs.latest }}"
           if [ "${{ steps.cli.outputs.needs_update }}" = "true" ]; then
-            NOTES="$NOTES
-
-Updated cursor-cli from ${{ steps.cli.outputs.current }} to ${{ steps.cli.outputs.latest }}"
+            NOTES="$NOTES"$'\n\n'"Updated cursor-cli from ${{ steps.cli.outputs.current }} to ${{ steps.cli.outputs.latest }}"
           fi
 
           gh release create "v${{ steps.gui.outputs.latest }}" \
