@@ -22,17 +22,22 @@ jobs:
       - name: Check for updates
         id: check
         run: |
-          # Get latest version from Cursor API
-          API_RESPONSE=$(curl -sL "https://www.cursor.com/api/download?platform=linux-x64&releaseTrack=stable")
-          VERSION=$(echo "$API_RESPONSE" | jq -r '.version')
-          COMMIT_SHA=$(echo "$API_RESPONSE" | jq -r '.commitSha')
-          DEB_URL=$(echo "$API_RESPONSE" | jq -r '.debUrl')
+          # Resolve latest Linux x64 .deb through Cursor's updater endpoint.
+          # The old cursor.com/api/download endpoint now serves the marketing HTML page.
+          DOWNLOAD_ENDPOINT="https://api2.cursor.sh/updates/download/golden/linux-x64-deb/cursor/stable"
+          DEB_URL=$(curl -fsSLI -o /dev/null -w '%{url_effective}' "$DOWNLOAD_ENDPOINT")
+
+          if [[ ! "$DEB_URL" =~ /production/[a-f0-9]{40}/.*/cursor_([0-9]+([.][0-9]+)+)_amd64[.]deb$ ]]; then
+            echo "Unexpected Cursor download URL: $DEB_URL" >&2
+            exit 1
+          fi
+
+          VERSION="${BASH_REMATCH[1]}"
 
           CURRENT=$(grep 'version = ' package.nix | head -1 | sed 's/.*"\(.*\)".*/\1/')
 
           echo "current=$CURRENT" >> $GITHUB_OUTPUT
           echo "latest=$VERSION" >> $GITHUB_OUTPUT
-          echo "commit_sha=$COMMIT_SHA" >> $GITHUB_OUTPUT
           echo "deb_url=$DEB_URL" >> $GITHUB_OUTPUT
 
           if [ "$VERSION" != "$CURRENT" ]; then
@@ -45,7 +50,6 @@ jobs:
         if: steps.check.outputs.needs_update == 'true'
         run: |
           VERSION="${{ steps.check.outputs.latest }}"
-          COMMIT_SHA="${{ steps.check.outputs.commit_sha }}"
           DEB_URL="${{ steps.check.outputs.deb_url }}"
 
           # Get new hash (nix-prefetch-url outputs hash on stdout, progress on stderr)
@@ -66,9 +70,8 @@ jobs:
           # Update package.nix - hash (use non-greedy match by stopping at quote)
           sed -i "s|hash = \"sha256-[^\"]*\"|hash = \"$SRI_HASH\"|" package.nix
 
-          # Update package.nix - commit SHA in URL
-          OLD_SHA=$(grep -oP 'production/\K[a-f0-9]{40}' package.nix | head -1)
-          sed -i "s|$OLD_SHA|$COMMIT_SHA|" package.nix
+          # Update package.nix - final download URL
+          sed -i "s|url = \"[^\"]*downloads.cursor.com[^\"]*\";|url = \"$DEB_URL\";|" package.nix
 
           # Show diff for debugging
           git diff package.nix

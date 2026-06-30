@@ -7,12 +7,19 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PACKAGE_NIX="$SCRIPT_DIR/package.nix"
 
-# Get latest version from Cursor API
-echo "Fetching latest version..."
-API_RESPONSE=$(curl -sL "https://www.cursor.com/api/download?platform=linux-x64&releaseTrack=stable")
-LATEST_VERSION=$(echo "$API_RESPONSE" | jq -r '.version')
-DOWNLOAD_URL=$(echo "$API_RESPONSE" | jq -r '.debUrl')
-COMMIT_SHA=$(echo "$API_RESPONSE" | jq -r '.commitSha')
+# Resolve latest Linux x64 .deb through Cursor's updater endpoint.
+# The old cursor.com/api/download endpoint now serves the marketing HTML page,
+# which makes jq fail on GitHub runners.
+echo "Resolving latest version..."
+DOWNLOAD_ENDPOINT="https://api2.cursor.sh/updates/download/golden/linux-x64-deb/cursor/stable"
+DOWNLOAD_URL=$(curl -fsSLI -o /dev/null -w '%{url_effective}' "$DOWNLOAD_ENDPOINT")
+
+if [[ ! "$DOWNLOAD_URL" =~ /production/[a-f0-9]{40}/.*/cursor_([0-9]+([.][0-9]+)+)_amd64[.]deb$ ]]; then
+    echo "Unexpected Cursor download URL: $DOWNLOAD_URL" >&2
+    exit 1
+fi
+
+LATEST_VERSION="${BASH_REMATCH[1]}"
 
 # Get current version from package.nix
 CURRENT_VERSION=$(grep 'version = ' "$PACKAGE_NIX" | head -1 | sed 's/.*"\(.*\)".*/\1/')
@@ -38,8 +45,7 @@ sed -i "s/version = \"$CURRENT_VERSION\"/version = \"$LATEST_VERSION\"/" "$PACKA
 # Update package.nix - hash
 sed -i "s|hash = \"sha256-.*\"|hash = \"$SRI_HASH\"|" "$PACKAGE_NIX"
 
-# Update package.nix - commit SHA in URL
-OLD_SHA=$(grep -oP 'production/\K[a-f0-9]{40}' "$PACKAGE_NIX" | head -1)
-sed -i "s|$OLD_SHA|$COMMIT_SHA|" "$PACKAGE_NIX"
+# Update package.nix - final download URL
+sed -i "s|url = \"[^\"]*downloads.cursor.com[^\"]*\";|url = \"$DOWNLOAD_URL\";|" "$PACKAGE_NIX"
 
 echo "Updated package.nix to version $LATEST_VERSION"
