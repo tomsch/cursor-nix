@@ -9,11 +9,11 @@
 
 stdenv.mkDerivation (finalAttrs: {
   pname = "cursor-cli";
-  version = "2026.10.18-ea085cb";
+  version = "2026.10.19-6bbf2c4";
 
   src = fetchurl {
     url = "https://downloads.cursor.com/lab/${finalAttrs.version}/linux/x64/agent-cli-package.tar.gz";
-    hash = "sha256-IjJbeZ6LeoqU/HnTWWy/obhUBzQ9NMOlUvcD1AI7HHk=";
+    hash = "sha256-z4DMGNizO/M+diNTl3yhhoz8RSkMksD/3O+Du4s3tE8=";
   };
 
   nativeBuildInputs = [
